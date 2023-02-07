@@ -12,6 +12,8 @@ public class ThirdPersonController : MonoBehaviour
     private float jumpHeight = 1.0f;
     [SerializeField]
     private float gravityValue = -9.81f;
+    [SerializeField]
+    private float rotationSpeed = 2f;
 
     private CharacterController controller;
     private PlayerInput playerInput;
@@ -21,6 +23,28 @@ public class ThirdPersonController : MonoBehaviour
 
     private InputAction moveAction;
     private InputAction jumpAction;
+    private InputAction runAction;
+
+    private void Awake()
+    {
+        playerInput = GetComponent<PlayerInput>();
+
+        moveAction = playerInput.actions["Move"];
+        jumpAction = playerInput.actions["Jump"];
+        runAction = playerInput.actions["Run"];
+    }
+
+    private void OnEnable()
+    {
+        runAction.performed += _ => StartRun();
+        runAction.canceled += _ => StopRun();
+    }
+
+    private void OnDisable()
+    {
+        runAction.performed -= _ => StartRun();
+        runAction.canceled -= _ => StopRun();
+    }
 
     private void Start()
     {
@@ -28,11 +52,8 @@ public class ThirdPersonController : MonoBehaviour
 
 
         controller = GetComponent<CharacterController>();
-        playerInput = GetComponent<PlayerInput>();
+        
         cameraTransform = Camera.main.transform;
-
-        moveAction = playerInput.actions["Move"];
-        jumpAction = playerInput.actions["Jump"];
     }
 
     void Update()
@@ -46,6 +67,7 @@ public class ThirdPersonController : MonoBehaviour
         Vector3 move = new Vector3(input.x, 0, input.y);
         move = move.x * cameraTransform.right.normalized + move.z * cameraTransform.forward.normalized;
         move.y = 0;
+
         controller.Move(move * Time.deltaTime * playerSpeed);
 
         if (move != Vector3.zero)
@@ -61,5 +83,21 @@ public class ThirdPersonController : MonoBehaviour
 
         playerVelocity.y += gravityValue * Time.deltaTime;
         controller.Move(playerVelocity * Time.deltaTime);
+
+        //Rotate player towards Camera
+        float targetAngle = cameraTransform.eulerAngles.y;
+        Quaternion rotation = Quaternion.Euler(0, targetAngle, 0);
+
+        transform.rotation = Quaternion.Lerp(transform.rotation, rotation, rotationSpeed);
+    }
+
+    void StartRun()
+    {
+        playerSpeed = playerSpeed * 2;
+    }
+
+    void StopRun()
+    {
+        playerSpeed = playerSpeed / 2;
     }
 }
